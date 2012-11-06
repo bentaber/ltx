@@ -41,7 +41,6 @@ Refer to `lib/parse.js` for the interface.
 
 ## Element traversal
 
-* `Element(name, attrs?, preventEscape?)`: constructor
 * `is(name, xmlns?)`: check
 * `getName()`: name without ns prefix
 * `getNS()`: element's xmlns, respects prefixes and searches upwards
@@ -66,7 +65,7 @@ Refer to `lib/parse.js` for the interface.
 
 ## Modifying XML Elements
 
-* `new Element(name, attrs?)`: constructor
+* `new Element(name, attrs?, preventEscape?)`: constructor
 * `remove(child)`: remove child by reference
 * `remove(name, xmlns)`: remove child by tag name and xmlns
 * `attr(attrName, value?)`: modify or get an attribute's value
