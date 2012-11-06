@@ -67,36 +67,36 @@ vows.describe('ltx').addBatch({
     },
 
     'remove': {
-	'by element': function() {
-	    var el = new ltx.Element('e').
-		c('c').c('x').up().up().
-		c('c2').up().
-		c('c').up();
-	    el.remove(el.getChild('c'));
-	    assert.equal(el.getChildren('c').length, 1);
-	    assert.equal(el.getChildren('c2').length, 1);
-	},
-	'by name': function() {
-	    var el = new ltx.Element('e').
-		c('c').up().
-		c('c2').up().
-		c('c').up();
-	    el.remove('c');
-	    assert.equal(el.getChildren('c').length, 0);
-	    assert.equal(el.getChildren('c2').length, 1);
-	}
+        'by element': function() {
+            var el = new ltx.Element('e').
+                c('c').c('x').up().up().
+                c('c2').up().
+                c('c').up();
+            el.remove(el.getChild('c'));
+            assert.equal(el.getChildren('c').length, 1);
+            assert.equal(el.getChildren('c2').length, 1);
+        },
+        'by name': function() {
+            var el = new ltx.Element('e').
+                c('c').up().
+                c('c2').up().
+                c('c').up();
+            el.remove('c');
+            assert.equal(el.getChildren('c').length, 0);
+            assert.equal(el.getChildren('c2').length, 1);
+        }
     },
 
-    'clone': {
-	'clones': function() {
-	    var orig = new ltx.Element('msg', { type: 'get' }).
-		c('content').t('foo').root();
-	    var clone = orig.clone();
-	    assert.equal(clone.name, orig.name);
-	    assert.equal(clone.attrs.type, orig.attrs.type);
-	    assert.equal(clone.attrs.to, orig.attrs.to);
-	    assert.equal(clone.children.length, orig.children.length);
-	    assert.equal(clone.getChildText('content'), orig.getChildText('content'));
+  'clone': {
+      'clones': function() {
+          var orig = new ltx.Element('msg', { type: 'get' }).
+              c('content').t('foo').root();
+          var clone = orig.clone();
+          assert.equal(clone.name, orig.name);
+          assert.equal(clone.attrs.type, orig.attrs.type);
+          assert.equal(clone.attrs.to, orig.attrs.to);
+          assert.equal(clone.children.length, orig.children.length);
+          assert.equal(clone.getChildText('content'), orig.getChildText('content'));
 
 	    assert.equal(orig.getChild('content').up(), orig);
 	    assert.equal(clone.getChild('content').up(), clone);
@@ -120,32 +120,69 @@ vows.describe('ltx').addBatch({
 	    var clone = orig.clone();
 	    clone.attrs.type += '-result';
 
-	    assert.equal(orig.attrs.type, 'get');
-	    assert.equal(clone.attrs.type, 'get-result');
-	},
-	'rm attr': function() {
-	    var orig = new ltx.Element('msg', { from: 'me' });
-	    var clone = orig.clone();
-	    delete clone.attrs.from;
-	    clone.attrs.to = 'you';
+        assert.equal(orig.attrs.type, 'get');
+        assert.equal(clone.attrs.type, 'get-result');
+    },
+    'rm attr': function() {
+        var orig = new ltx.Element('msg', { from: 'me' });
+        var clone = orig.clone();
+        delete clone.attrs.from;
+        clone.attrs.to = 'you';
 
-	    assert.equal(orig.attrs.from, 'me');
-	    assert.equal(orig.attrs.to, undefined);
-	    assert.equal(clone.attrs.from, undefined);
-	    assert.equal(clone.attrs.to, 'you');
-	},
-	'mod child': function() {
-	    var orig = new ltx.Element('msg', { type: 'get' }).
-		c('content').t('foo').root();
-	    var clone = orig.clone();
-	    clone.getChild('content').
-		t('bar').
-		name = 'description';
+        assert.equal(orig.attrs.from, 'me');
+        assert.equal(orig.attrs.to, undefined);
+        assert.equal(clone.attrs.from, undefined);
+        assert.equal(clone.attrs.to, 'you');
+    },
+    'mod child': function() {
+        var orig = new ltx.Element('msg', { type: 'get' }).
+            c('content').t('foo').root();
+        var clone = orig.clone();
+        clone.getChild('content').t('bar').name = 'description';
 
-	    assert.equal(orig.children[0].name, 'content');
-	    assert.equal(orig.getChildText('content'), 'foo');
-	    assert.equal(clone.children[0].name, 'description');
-	    assert.equal(clone.getChildText('description'), 'foobar');
-	}
+        assert.equal(orig.children[0].name, 'content');
+        assert.equal(orig.getChildText('content'), 'foo');
+        assert.equal(clone.children[0].name, 'description');
+        assert.equal(clone.getChildText('description'), 'foobar');
     }
+  },
+
+  'recursive': {
+      'getChildrenByAttr': function() {
+        var el = new ltx.Element('a')
+            .c('b')
+            .c('c', {myProperty:'x'}).t('bar').up().up().up()
+            .c('d', {id: 'x'})
+            .c('e', {myProperty:'x'}).root();
+
+        var results = el.getChildrenByAttr('myProperty', 'x', null, true);
+        assert.equal( results[0].toString(), '<c myProperty="x">bar</c>');
+        assert.equal( results[1].toString(), '<e myProperty="x"/>');
+      },
+      'getChildByAttr': function() {
+        var el = new ltx.Element('a')
+            .c('b')
+            .c('c', {id:'x'})
+            .t('bar').root();
+        assert.equal(el.getChildByAttr('id', 'x', null, true).toString(), '<c id="x">bar</c>');
+      }
+  },
+
+  "issue #15: Inconsistency with prefixed elements": {
+      topic: function() {
+	  return ltx.parse('<root><x:foo>bar</x:foo></root>');
+      },
+      "getChildText prefixed": function(el) {
+	  assert.equal(el.getChildText('x:foo'), null);
+      },
+      "getChildText unprefixed": function(el) {
+	  assert.equal(el.getChildText('foo'), 'bar');
+      },
+      "getChild prefixed": function(el) {
+	  assert.equal(el.getChild('x:foo'), null);
+      },
+      "getChild unprefixed": function(el) {
+	  assert.equal(el.getChild('foo').getText(), 'bar');
+      }
+  }
 }).export(module);

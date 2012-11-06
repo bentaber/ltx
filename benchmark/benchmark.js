@@ -1,7 +1,12 @@
-var ltx = require("ltx");
-var strophe = require('Strophe.js');
+if (process.title === 'browser') {
+    var ltx = require("ltx");
+    var strophe = require('Strophe.js');
+    var requestAnimationFrame = require('request-animation-frame').requestAnimationFrame;
+} else {
+    var path = "../lib/index";
+    var ltx = require(path);
+}
 var util = require('util');
-var requestAnimationFrame = require('request-animation-frame').requestAnimationFrame;
 
 function now() {
     return new Date().getTime();
@@ -23,14 +28,23 @@ Test.prototype = {
     },
 
     report: function() {
-	var s = [];
-	var html = "<div style='float: left; min-width: 25em'><h2>" + this.name + "</h2><dl>";
-	for(var k in this.timings) {
-	    var t = this.timings[k].t / this.timings[k].i;
-	    html += "<dt>" + k + "</dt><dd class='" + k + "'>" + t + " ms </dd>";
+	if (process.title === 'browser') {
+	    var s = [];
+	    var html = "<div style='float: left; min-width: 25em'><h2>" + this.name + "</h2><dl>";
+	    for(var k in this.timings) {
+		var t = this.timings[k].t / this.timings[k].i;
+		html += "<dt>" + k + "</dt><dd class='" + k + "'>" + t + " ms </dd>";
+	    }
+	    html += "</dl></div>\n";
+	    return html;
+	} else {
+	    var s = this.name + "\t";
+	    for(k in this.timings) {
+		var t = this.timings[k].t / this.timings[k].i;
+		s += k + ": " + t + " ms\t";
+	    }
+	    return s;
 	}
-	html += "</dl></div>\n";
-	return html;
     }
 };
 
@@ -56,24 +70,27 @@ LtxTest.prototype.traverse = function(node) {
 
 function StropheTest() {
     Test.call(this);
-    this.name = "Strophe.js";
+
+    this.serialize = Strophe.serialize;
 }
 util.inherits(StropheTest, Test);
+
+StropheTest.prototype.name = "Strophe.js";
 
 StropheTest.prototype.parse = function(s) {
     return Strophe.xmlHtmlNode(s).firstChild;
 };
-
-StropheTest.prototype.serialize = Strophe.serialize;
 
 StropheTest.prototype.traverse = function(node) {
     while(node.firstChild)
 	node = node.firstChild;
 };
 
-var tests = [new StropheTest()].concat(ltx.availableSaxParsers.map(function(saxParser) {
+var tests = ltx.availableSaxParsers.map(function(saxParser) {
     return new LtxTest(saxParser);
-}));
+});
+if (process.title === 'browser')
+    tests.push(new StropheTest());
 var messages = [
     "<message/>",
     "<message foo='bar'/>",
@@ -106,13 +123,20 @@ function runTests() {
 	}
     });
 
-    document.body.innerHTML = "<style>.parse0, .parse1, .parse2, .parse3 { color: red; } .serialize1, .serialize2, .serialize3, .serialize4 { color: blue; }</style>\n" +
-	"<h1>Iteration " + iteration + "<h1>\n";
-    tests.forEach(function(test) {
-	document.body.innerHTML += test.report() + "<br>";
-    });
-
-    requestAnimationFrame(runTests);
+    if (process.title === 'browser') {
+	document.body.innerHTML = "<style>.parse0, .parse1, .parse2, .parse3 { color: red; } .serialize1, .serialize2, .serialize3, .serialize4 { color: blue; }</style>\n" +
+	    "<h1>Iteration " + iteration + "<h1>\n";
+	tests.forEach(function(test) {
+	    document.body.innerHTML += test.report() + "<br>";
+	});
+	requestAnimationFrame(runTests);
+    } else {
+	console.log("Iteration " + iteration);
+	tests.forEach(function(test) {
+	    console.log(test.report());
+	});
+	process.nextTick(runTests);
+    }
 }
 
 setTimeout(function() {
